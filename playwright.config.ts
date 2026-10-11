@@ -25,6 +25,10 @@ export default defineConfig({
       LOCAL_DATA_DIR: ".data/e2e",
       APP_ORIGIN: "http://127.0.0.1:3100",
       NEXT_DIST_DIR: ".next-e2e",
+      // Email-auth tests intercept Firebase requests; never use live credentials.
+      NEXT_PUBLIC_FIREBASE_API_KEY: "email-auth-browser-test-key",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "demo-zyvara.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "demo-zyvara",
     },
   },
 });

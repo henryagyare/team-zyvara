@@ -19,7 +19,7 @@ Without a service configuration or demo setup, browsing works with local seeded 
 
 ## Production configuration and deployment
 
-Use Tiger Data PostgreSQL for records and private photos, and a Firebase Spark project for free Google sign-in. No Firebase Storage bucket or Blaze billing upgrade is required. Variable names are in `.env.example`; no credentials are included.
+Use Tiger Data PostgreSQL for records and private photos, and a Firebase Spark project for Google and email/password sign-in. No Firebase Storage bucket or Blaze billing upgrade is required. Variable names are in `.env.example`; no credentials are included.
 
 - Database: `DATABASE_URL`, optional `DATABASE_SSL_CA` and `DATABASE_POOL_MAX`. [Tiger handoff](https://www.google.com/search?q=docs/TIGER-DATA-HANDOFF.md).
 - Firebase server: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`. These support verified and revocation-checked sign-in sessions and never enter browser bundles.
@@ -71,3 +71,8 @@ Official references used: [Next route handlers](https://nextjs.org/docs/app/gett
 Creators cannot submit to their own challenges. On their challenge page, they can review the latest evidence after Gemini, record a reason, and approve or deny once per evidence version. Approval grants the saved submission points once; denial removes points and sharing. Original AI feedback is retained. Description fields show live counts against the existing 2,000-character limit. The footer offers persistent Small, Default, and Large text sizes.
 
 Creators can choose 1–1,000 points at creation and update points, font family (Zyvara default, sans serif, serif), and text size under Challenge settings after publication. Reward changes apply to new participants; existing submissions and their revisions retain the first accepted reward. Existing challenges and contributions default to 50 points. Migration 0004 adds these settings and reward snapshots.
+### Email/password authentication
+
+Enable Email/Password (keep email-link sign-in off) in the Firebase project’s Authentication → Sign-in method settings, alongside Google. Zyvara offers account creation with a display name, email sign-in, and password reset through Firebase’s hosted reset page. This uses the existing Firebase configuration and server session; no new secrets or database migrations are needed. Passwords go directly to Firebase, and only the verified identity token goes to Zyvara. Browser Firebase persistence remains in memory and is cleared after the session exchange, including failures. Existing Google members should continue with Google; this change does not automatically link separate providers.
+
+The email browser suite uses the real Firebase SDK with intercepted provider/session responses, including a missing-account reset response, and never creates remote accounts or sends email. Run `pnpm test:e2e tests/e2e/email-auth.spec.ts`. Before production release, smoke-test sign-up, sign-out/sign-in, and reset delivery with an email address you control.
