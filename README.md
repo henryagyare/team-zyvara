@@ -46,6 +46,8 @@ The teammate Gemini module is integrated server-side. Activate with `ASSESSMENT_
 
 ## Checks
 
+Voice challenge entry uses ElevenLabs Scribe v2. Set the server-only `ELEVENLABS_API_KEY` to enable recording and audio uploads on Create challenge. Users review transcripts and explicitly add them to the draft before publishing. [Setup, privacy, and verification](docs/VOICE-CHALLENGES.md).
+
 ```sh
 pnpm typecheck
 pnpm lint
