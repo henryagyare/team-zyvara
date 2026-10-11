@@ -1,4 +1,45 @@
 import { test, expect } from "@playwright/test";
+import path from "node:path";
+
+test("live voice: authenticated audio reaches ElevenLabs and becomes an unpublished draft", async ({
+  page,
+}) => {
+  test.skip(
+    !process.env.LIVE_VOICE_AUDIO,
+    "Opt in with a real audio file and local ElevenLabs key.",
+  );
+  await page.goto("/signin?returnTo=/create");
+  await page
+    .getByLabel("Demo profile name")
+    .fill("Live voice test " + Date.now());
+  await page.getByLabel("Demo access code").fill("local-zyvara-demo");
+  await page.getByRole("button", { name: "Enter restricted demo" }).click();
+  await expect(page).toHaveURL(/\/create$/);
+  let publishes = 0;
+  page.on("request", (req) => {
+    if (
+      req.method() === "POST" &&
+      new URL(req.url()).pathname === "/api/challenges"
+    )
+      publishes++;
+  });
+  await page
+    .getByLabel("Or upload audio")
+    .setInputFiles(path.resolve(process.env.LIVE_VOICE_AUDIO!));
+  await page
+    .getByRole("button", { name: "Transcribe audio", exact: true })
+    .click();
+  const transcript = page.getByLabel("Review transcript for mission");
+  await expect(transcript).toBeVisible({ timeout: 60000 });
+  const text = await transcript.inputValue();
+  expect(text.trim().length).toBeGreaterThan(0);
+  await expect(page.getByLabel("Describe the mission")).toHaveValue("");
+  await page.getByRole("button", { name: "Add to draft", exact: true }).click();
+  await expect(page.getByLabel("Describe the mission")).toHaveValue(
+    text.trim(),
+  );
+  expect(publishes).toBe(0);
+});
 
 test("voice entry protects the API and requires transcript review before changing or publishing a draft", async ({
   page,

@@ -16,6 +16,18 @@ Origin checks, member authentication, a persisted five-request-per-minute member
 
 ## Verification
 
+For a real provider check using your ignored local development key and an audio file you are comfortable sending to ElevenLabs:
+
+```sh
+pnpm exec tsx scripts/verify-voice.ts path/to/audio.wav
+```
+
+The script reports only success and transcript length. To opt into the real browser-to-server flow, set `LIVE_VOICE_AUDIO` to your audio file path and run the `live voice` Playwright test. It signs into the isolated local demo, transcribes actual audio, and applies the text to an unpublished draft. Normal CI skips that test and never calls ElevenLabs.
+
 Unit tests cover bounded chunked uploads, file types and sizes, malformed multipart, missing configuration, Scribe request options, transcript length/shape, and provider error redaction. Browser tests use an explicitly mocked transcription endpoint for deterministic UI validation; live account/credit validation requires a real audio sample. No production mock transcription fallback is shipped.
 
 Official endpoint reference: https://elevenlabs.io/docs/api-reference/speech-to-text/convert
+
+Verified on October 11, 2026: a short synthetic park-cleanup recording passed both the standalone live provider check and the authenticated local browser → Zyvara API → ElevenLabs → reviewed draft flow. No challenge was published. TypeScript, lint, production build, deterministic browser checks, and the backend suite also passed (24 backend tests passed; one existing photo-storage test skipped locally). CI checks passed with the configured database-photo test mode.
+
+The Vercel production and preview speech keys are saved as Secrets, and the PR preview was redeployed. The preview's existing backend configuration is incomplete: it needs an isolated `DATABASE_URL` (and its TLS CA when required), Firebase server credentials (`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`), `AUTH_MODE=firebase`, and its hostname in Firebase Auth's authorized domains before online sign-in/testing. Production already has its backend settings. No production database credentials were copied into the preview, and main was not merged or deployed by this change.
