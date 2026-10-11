@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { EmailAuth } from "./email-auth";
+import { clientAuth, exchangeSession, authError } from "./firebase-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ArrowRight, Leaf, Flag, Shield } from "lucide-react";
@@ -298,37 +300,20 @@ export function SignIn() {
     setBusy(true);
     setError("");
     try {
-      const { initializeApp, getApps } = await import("firebase/app");
-      const {
-        getAuth,
-        GoogleAuthProvider,
-        signInWithPopup,
-        signOut,
-        setPersistence,
-        inMemoryPersistence,
-      } = await import("firebase/auth");
-      const app =
-        getApps()[0] ||
-        initializeApp({
-          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        });
-      const auth = getAuth(app);
-      await setPersistence(auth, inMemoryPersistence);
-      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
-      const token = await credential.user.getIdToken();
-      await send("session", { idToken: token });
-      await signOut(auth);
+      const { auth, sdk } = await clientAuth();
+      try {
+        const credential = await sdk.signInWithPopup(
+          auth,
+          new sdk.GoogleAuthProvider(),
+        );
+        await exchangeSession(auth, credential.user);
+      } finally {
+        await sdk.signOut(auth).catch(() => {});
+      }
       await refresh();
       router.push(returnTo);
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Google sign-in is unavailable. Try again.",
-      );
+      setError(authError(e));
     } finally {
       setBusy(false);
     }
@@ -420,21 +405,32 @@ export function SignIn() {
             </button>
           </form>
         ) : (
-          <>
+          <div className="stack">
+            <EmailAuth
+              busy={busy}
+              disabled={!config?.firebaseConfigured}
+              setBusy={setBusy}
+              setError={setError}
+              onSignedIn={async () => {
+                await refresh();
+                router.push(returnTo);
+              }}
+            />
+            <p className="helper">Or sign in with Google</p>
             <button
               className="btn full secondary"
               disabled={busy || !config?.firebaseConfigured}
               onClick={() => void google()}
             >
-              {busy ? "Opening Google…" : "Continue with Google"}
+              Continue with Google
             </button>
             {config && !config.firebaseConfigured && (
               <p className="auth-message">
-                Google authentication is waiting for fresh Firebase project
+                Authentication is waiting for fresh Firebase project
                 configuration.
               </p>
             )}
-          </>
+          </div>
         )}
         <p className="helper">
           <Shield size={16} style={{ display: "inline" }} /> Your evidence is
@@ -459,8 +455,8 @@ export function Privacy() {
       <p>
         We store your display name, challenges you create, submitted photos and
         descriptions, assessment jobs and outcomes, sharing choices, reports,
-        and recognition ledger. Google sign-in identity is verified on the
-        server. Email addresses are not displayed in the community.
+        and recognition ledger. Your Firebase sign-in identity is verified on
+        the server. Email addresses are not displayed in the community.
       </p>
       <h2>Private by default</h2>
       <p>
@@ -497,7 +493,7 @@ export function Privacy() {
         The restricted development demo uses organizer-issued access and named
         demonstration profiles. Anyone with the demo code and the same profile
         name can access that profile. Use test information only. Production uses
-        Firebase Google identity.
+        Firebase identity.
       </p>
       <h2>Community safety</h2>
       <p>
