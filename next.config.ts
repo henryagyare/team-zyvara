@@ -10,9 +10,12 @@ const config: NextConfig = {
   ],
   async redirects() {
     // Production aliases must use the same origin as the secure session/API.
-    if (process.env.VERCEL_ENV !== "production" || !process.env.APP_ORIGIN)
+    if (
+      process.env.NODE_ENV !== "production" ||
+      process.env.VERCEL_ENV === "preview"
+    )
       return [];
-    const origin = new URL(process.env.APP_ORIGIN);
+    const origin = new URL(process.env.APP_ORIGIN || "https://zyvara.us");
     if (origin.protocol !== "https:") return [];
     const hosts = new Set([
       process.env.VERCEL_URL,
