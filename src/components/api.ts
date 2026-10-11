@@ -34,6 +34,7 @@ export const send = <T>(url: string, body: unknown, method = "POST") =>
   api<T>(url, { method, body: JSON.stringify(body) });
 export type Member = { id: string; name: string; admin: boolean };
 export type Config = {
+  voiceConfigured: boolean;
   demo: boolean;
   scenarioSelection: boolean;
   firebaseConfigured: boolean;

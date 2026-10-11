@@ -484,6 +484,16 @@ export function Privacy() {
         happened, or measured environmental impact. Recognition celebrates
         documented participation.
       </p>
+      <h2>Voice challenge entry</h2>
+      <p>
+        Voice entry is optional. Recordings stay in your browser until you
+        select Transcribe audio, which sends them to ElevenLabs for speech
+        recognition. Zyvara does not persist audio or transcripts on its server.
+        ElevenLabs may retain audio and transcripts under its own privacy and
+        retention policies. Review and edit the text before adding it to your
+        draft; only publishing the challenge saves that text as challenge
+        content. Avoid personal or sensitive information in recordings.
+      </p>
       <h2>Deletion and recognition</h2>
       <p>
         Deleting a contribution removes its description and photos and stops
