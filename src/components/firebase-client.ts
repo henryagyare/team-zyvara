@@ -30,6 +30,10 @@ export function authError(error: unknown) {
   const code =
     error && typeof error === "object" && "code" in error ? error.code : "";
   switch (code) {
+    case "auth/unauthorized-domain":
+      return "Sign-in is not configured for this address. Open zyvara.us and try again, or contact the organizer.";
+    case "auth/popup-blocked":
+      return "Your browser blocked Google sign-in. Allow pop-ups for this site or sign in with email.";
     case "auth/invalid-credential":
     case "auth/user-not-found":
     case "auth/wrong-password":

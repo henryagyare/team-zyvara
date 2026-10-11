@@ -11,6 +11,11 @@ import { AppError } from "@/server/errors";
 import { seed } from "@/server/seed";
 import { getAssessmentProvider } from "@/server/assessment";
 import * as service from "@/server/services";
+import {
+  readVoiceUpload,
+  transcribeVoice,
+  voiceConfigured,
+} from "@/server/voice";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -45,6 +50,7 @@ async function dispatch(request: NextRequest, context: Context) {
     if (method === "GET" && route === "config")
       return NextResponse.json({
         demo: demoEnabled(),
+        voiceConfigured: voiceConfigured(),
         scenarioSelection:
           scenarioEnabled() && getAssessmentProvider().simulated,
         firebaseConfigured: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -117,6 +123,18 @@ async function dispatch(request: NextRequest, context: Context) {
       });
     }
     const member = await requireMember();
+    if (method === "POST" && route === "voice/transcribe") {
+      await service.rateLimit(member.id + ":voice", 5);
+      if (!voiceConfigured())
+        throw new AppError(
+          503,
+          "Voice entry is not configured yet. You can still type your challenge.",
+        );
+      return NextResponse.json(
+        await transcribeVoice(await readVoiceUpload(request), request.signal),
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
     if (method !== "GET")
       await service.rateLimit(
         member.id + ":" + path[0],

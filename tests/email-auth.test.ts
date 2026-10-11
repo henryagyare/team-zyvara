@@ -2,6 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { authError } from "../src/components/firebase-client";
 
+test("domain and popup failures provide a useful recovery action", () => {
+  assert.match(authError({ code: "auth/unauthorized-domain" }), /zyvara\.us/);
+  assert.match(authError({ code: "auth/popup-blocked" }), /sign in with email/);
+});
+
 test("invalid email credentials do not reveal whether an account exists", () => {
   const expected = authError({ code: "auth/invalid-credential" });
   assert.equal(authError({ code: "auth/user-not-found" }), expected);

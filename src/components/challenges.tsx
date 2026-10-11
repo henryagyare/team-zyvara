@@ -19,6 +19,7 @@ import {
 import { CreatorReview } from "./review";
 import { MemberGate, useSession } from "./app";
 import { ChallengeSettings } from "./challenge-settings";
+import { VoiceChallenge } from "./voice-challenge";
 const categories = ["Cleanup", "Planting", "Recycling", "Conservation"];
 export function Discover() {
   const { config } = useSession();
@@ -340,6 +341,25 @@ function CreateForm() {
         title="Create a little momentum"
         subtitle="Turn a practical idea into an environmental challenge."
         crumb={<Link href="/">Discover / Create challenge</Link>}
+      />
+      <VoiceChallenge
+        disabled={busy}
+        onApply={(field, text, replace) => {
+          const existing = { title, description, requirements }[field];
+          const combined =
+            replace || !existing.trim()
+              ? text
+              : existing + (field === "requirements" ? "\n" : " ") + text;
+          if (combined.length > (field === "title" ? 80 : 2000)) return false;
+          ({
+            title: setTitle,
+            description: setDescription,
+            requirements: setRequirements,
+          })[field](combined);
+          setError("");
+          setFields({});
+          return true;
+        }}
       />
       <div className="columns">
         <form className="panel wide" onSubmit={submit}>

@@ -46,6 +46,8 @@ The teammate Gemini module is integrated server-side. Activate with `ASSESSMENT_
 
 ## Checks
 
+Voice challenge entry uses ElevenLabs Scribe v2. Set the server-only `ELEVENLABS_API_KEY` to enable recording and audio uploads on Create challenge. Users review transcripts and explicitly add them to the draft before publishing. [Setup, privacy, and verification](docs/VOICE-CHALLENGES.md).
+
 ```sh
 pnpm typecheck
 pnpm lint
@@ -74,3 +76,5 @@ Creators can choose 1–1,000 points at creation and update points, font family 
 Enable Email/Password (keep email-link sign-in off) in the Firebase project’s Authentication → Sign-in method settings, alongside Google. Zyvara offers account creation with a display name, email sign-in, and password reset through Firebase’s hosted reset page. This uses the existing Firebase configuration and server session; no new secrets or database migrations are needed. Passwords go directly to Firebase, and only the verified identity token goes to Zyvara. Browser Firebase persistence remains in memory and is cleared after the session exchange, including failures. Existing Google members should continue with Google; this change does not automatically link separate providers.
 
 The email browser suite uses the real Firebase SDK with intercepted provider/session responses, including a missing-account reset response, and never creates remote accounts or sends email. Run `pnpm test:e2e tests/e2e/email-auth.spec.ts`. Before production release, smoke-test sign-up, sign-out/sign-in, and reset delivery with an email address you control.
+
+Production Vercel aliases redirect to `APP_ORIGIN` (https://zyvara.us) so Firebase sign-in and the API origin check use the same host. Preview deployments retain their own URLs. Firebase’s authorized-domain list includes the custom domain and stable project aliases; keep new custom domains synchronized when changing the canonical origin.
