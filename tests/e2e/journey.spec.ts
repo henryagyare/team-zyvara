@@ -182,6 +182,8 @@ test("desktop: sign in, create, submit, retry, reward, refresh, share, withdraw,
 test("creator reviews insufficient evidence and text size persists", async ({
   page,
 }) => {
+  // This story signs in repeatedly and compiles several dev-server routes.
+  test.slow();
   const creator = "Review creator " + Date.now();
   async function signIn(name: string, path: string) {
     await page.goto("/signin?returnTo=" + encodeURIComponent(path));
@@ -248,13 +250,15 @@ test("creator reviews insufficient evidence and text size persists", async ({
   await page.getByRole("button", { name: "Save evidence & assess" }).click();
   await expect(
     page.getByRole("heading", { name: "A clearer picture would help" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 60000 });
   const assessmentPath = new URL(page.url()).pathname;
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await signIn(creator, challengePath);
   await page.getByLabel("Challenge points", { exact: true }).fill("250");
   await page.getByRole("button", { name: "Save challenge settings" }).click();
-  await expect(page.locator(".reward")).toHaveText("250 points");
+  await expect(page.locator(".reward")).toHaveText("250 points", {
+    timeout: 60000,
+  });
   await expect(
     page.getByText("Gemini: needs more evidence", { exact: true }),
   ).toBeVisible();
