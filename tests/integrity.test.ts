@@ -177,6 +177,105 @@ test(
     await assert.rejects(putObject("../../outside", photo, "image/png"));
   },
 );
+test(
+  "database finalization uses replacement quota and restores staging on failure",
+  { skip: process.env.TEST_STORAGE_MODE !== "postgres" },
+  async () => {
+    const db = await getDb();
+    const slot = await service.allocateUpload(alice, "result", "image/png");
+    await service.receiveLocalUpload(alice, slot.id, photo, "image/png");
+    const stagingKey = `originals/${alice.id}/${slot.id}`;
+    const finalKey = `derivatives/${alice.id}/${slot.id}.webp`;
+    const [staging] = await db
+      .select()
+      .from(schema.mediaObjects)
+      .where(eq(schema.mediaObjects.key, stagingKey));
+    const verified = await validatePhoto(
+      Buffer.from(staging.encoded, "base64"),
+    );
+    const [usage] = await db
+      .select({ total: sql<number>`sum(${schema.mediaObjects.bytes})` })
+      .from(schema.mediaObjects);
+    const limit = 100 * 1024 * 1024;
+    const fillerPrefix = `derivatives/${alice.id}/quota-fixture-`;
+    const clearQuota = () =>
+      db
+        .delete(schema.mediaObjects)
+        .where(sql`${schema.mediaObjects.key} LIKE ${fillerPrefix + "%"}`);
+    async function fillQuota(bytes: number) {
+      await clearQuota();
+      const rows = [];
+      while (bytes > 0) {
+        const size = Math.min(bytes, 1024 * 1024);
+        rows.push({
+          key: `${fillerPrefix}${rows.length}.webp`,
+          encoded: "",
+          mime: "image/webp",
+          bytes: size,
+        });
+        bytes -= size;
+      }
+      await db.insert(schema.mediaObjects).values(rows);
+    }
+    // Model occupied quota without allocating a 100 MiB image in the test.
+    await fillQuota(limit - Number(usage.total) + staging.bytes);
+    try {
+      await assert.rejects(
+        service.finalizeUpload(alice, slot.id),
+        /storage is full/,
+      );
+      const [restored] = await db
+        .select()
+        .from(schema.mediaObjects)
+        .where(eq(schema.mediaObjects.key, stagingKey));
+      assert.equal(restored.encoded, staging.encoded);
+      assert.equal(
+        (
+          await db
+            .select()
+            .from(schema.mediaObjects)
+            .where(eq(schema.mediaObjects.key, finalKey))
+        ).length,
+        0,
+      );
+      const [upload] = await db
+        .select()
+        .from(schema.uploads)
+        .where(eq(schema.uploads.id, slot.id));
+      assert.equal(upload.state, "allocated");
+      await fillQuota(
+        limit -
+          Number(usage.total) -
+          Math.max(0, verified.derivative.length - staging.bytes),
+      );
+      await service.finalizeUpload(alice, slot.id);
+      assert.equal(
+        (
+          await db
+            .select()
+            .from(schema.mediaObjects)
+            .where(eq(schema.mediaObjects.key, stagingKey))
+        ).length,
+        0,
+      );
+      assert.equal(
+        (
+          await db
+            .select()
+            .from(schema.mediaObjects)
+            .where(eq(schema.mediaObjects.key, finalKey))
+        ).length,
+        1,
+      );
+      const [finalUsage] = await db
+        .select({ total: sql<number>`sum(${schema.mediaObjects.bytes})` })
+        .from(schema.mediaObjects);
+      assert.ok(Number(finalUsage.total) <= limit);
+    } finally {
+      await clearQuota();
+    }
+  },
+);
 async function challenge(title = "Test action") {
   return service.createChallenge(creator, {
     title,

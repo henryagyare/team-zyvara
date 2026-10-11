@@ -246,8 +246,9 @@ export async function finalizeUpload(member: Member, id: string) {
     }
     const verified = await validatePhoto(bytes);
     const derivativeKey = `derivatives/${member.id}/${id}.webp`;
-    await putObject(derivativeKey, verified.derivative, "image/webp", tx);
+    // Reclaim staging quota within this transaction; a failed save restores it.
     if (databaseStorage()) await deleteObject(upload.objectKey, tx);
+    await putObject(derivativeKey, verified.derivative, "image/webp", tx);
     await tx
       .update(s.uploads)
       .set({
